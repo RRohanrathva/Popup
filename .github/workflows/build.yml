@@ -23,11 +23,25 @@ jobs:
         with:
           gradle-version: 8.11.1
 
+      - name: Find project folder
+        id: find
+        run: |
+          FILE=$(find . -name settings.gradle.kts -not -path "*/node_modules/*" | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "settings.gradle.kts not found. Files in repo:"
+            find . -maxdepth 3 -not -path "./.git/*"
+            exit 1
+          fi
+          DIR=$(dirname "$FILE")
+          echo "Project folder: $DIR"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
       - name: Build debug APK
+        working-directory: ${{ steps.find.outputs.dir }}
         run: gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: PopupNotify-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.find.outputs.dir }}/app/build/outputs/apk/debug/*.apk
